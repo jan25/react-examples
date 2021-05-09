@@ -1,0 +1,122 @@
+<html>
+    <head>
+        <meta charset="UTF-8" />
+        <title>Hello World</title>
+        <script src="https://unpkg.com/react@17.0.2/umd/react.production.min.js"></script>
+        <script src="https://unpkg.com/react-dom@17.0.2/umd/react-dom.production.min.js"></script>
+        <script src="https://unpkg.com/@babel/standalone@7.13.12/babel.min.js"></script>
+    </head>
+    <body>
+        <div id="root"></div>
+        <script type="text/babel">
+            const {useState, useEffect, useRef} = React;
+
+      const fetchData = async (page) => {
+        const res = await fetch(`https://randomuser.me/api?page=${page}`);
+        console.log(res);
+        return await res.json();
+      }
+
+      const fullname = (user) => {
+        return `${user.name.title} ${user.name.first} ${user.name.last}`;
+      }
+
+      const filterUsers = (users, keyword) => {
+        if (keyword === '') return users;
+        return users.filter(user => fullname(user).search(keyword) != -1);
+      };
+
+      const useDebounce = (value) => {
+        const [debounced, setDebounced] = useState(value);
+
+        useEffect(() => {
+          const timerId = setTimeout(() => {
+                setDebounced(value);
+          }, 500);
+          return () => clearTimeout(timerId);
+        }, [value]);
+
+        return debounced;
+      };
+
+      const Response = () => {
+        const [users, setUsers] = useState([]);
+        const [page, setPage] = useState(0);
+
+        const searchInput = useRef(null);
+        const [keyword, setKeyword] = useState('');
+
+        const [filteredUsers, setFilteredUsers] = useState([]);
+        const keywordDebounced = useDebounce(keyword);
+
+        useEffect(() => {
+                setFilteredUsers(filterUsers(users, keywordDebounced));
+        }, [keywordDebounced, users]);
+
+        useEffect(async () => {
+          const data = await fetchData(page);
+          const newUsers = data.results;
+          setUsers([...users, ...newUsers]);
+        }, [page]);
+
+        const handleShowMore = () => {
+                setPage(page + 1);
+        };
+
+        const handleFocus = () => {
+                searchInput.current.focus();
+        };
+
+        const handleKeywordChange = (e) => {
+                setKeyword(e.target.value);
+        };
+
+        return (
+          <div>
+                <input ref={searchInput} value={keyword} onChange={handleKeywordChange} />
+                {keyword && <p>{keyword}</p>}
+                <button onClick={handleFocus}>Focus</button>
+                {filteredUsers && filteredUsers.map(user => <User name={fullname(user)} image={user.picture.thumbnail} />)}
+                {keyword !== '' || <button onClick={handleShowMore}>+ Show more</button>}
+                {users ? <pre>{JSON.stringify(users, null, 2)}</pre> : <p>{'no data to show'}</p>}
+            </div>
+        );
+      };
+
+      const User = ({name, image}) => {
+        return (
+          <div>
+                <h4>{name}</h4>
+                <img src={image} alt={name} />
+            </div>
+        );
+      }
+
+      const App = () => {
+        return (
+          <>
+                <User />
+                <Response />
+            </>
+        );
+      }
+
+      const Counter = () => {
+        const [count, setCount] = useState(0);
+
+        return (
+          <div>
+                <p>{count}</p>
+                <button onClick={() => setCount(count + 1)}>Increase</button>
+            </div>
+        );
+      };
+
+      ReactDOM.render(
+        // <Counter />,
+        <Response />,
+        document.getElementById('root')
+      );
+    </script>
+    </body>
+</html>
